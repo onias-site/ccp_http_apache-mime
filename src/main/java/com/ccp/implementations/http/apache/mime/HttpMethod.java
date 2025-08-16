@@ -66,7 +66,7 @@ enum HttpMethod {
 		HttpRequestBase method = this.getMethod(url, body);
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) {
-			String headerValue = headers.getAsString(headerName);
+			String headerValue = headers.getDynamicVersion().getAsString(headerName);
 			method.addHeader(headerName, headerValue);
 		}
 		return method;
