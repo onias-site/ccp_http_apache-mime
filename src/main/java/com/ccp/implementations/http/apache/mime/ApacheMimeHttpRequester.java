@@ -10,9 +10,9 @@ import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
 import com.ccp.decorators.CcpJsonRepresentation;
+import com.ccp.especifications.http.CcpHttpMethods;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponse;
-import com.ccp.http.CcpHttpMethods;
 
 class ApacheMimeHttpRequester implements CcpHttpRequester {
 
