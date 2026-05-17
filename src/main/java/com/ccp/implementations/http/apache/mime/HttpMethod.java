@@ -3,6 +3,7 @@ package com.ccp.implementations.http.apache.mime;
 import java.util.Set;
 
 import org.apache.http.client.methods.HttpDelete;
+import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpHead;
 import org.apache.http.client.methods.HttpPatch;
@@ -18,52 +19,74 @@ enum HttpMethod {
 
 	POST { 
 		
-		public HttpRequestBase getMethod(String url, String body) {
+		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPost method = new HttpPost(url);
 			method.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+			return method;
+		}
+
+		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
+			var method = new HttpPost(url);
 			return method;
 		}
 	},
 	GET {
 		
-		public HttpRequestBase getMethod(String url, String body) {
+		public HttpRequestBase getMethodWithBody(String url, String body) {
 			return new HttpGet(url);
+		}
+		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
+			throw new UnsupportedOperationException();
 		}
 	},
 	PUT {
 		
-		public HttpRequestBase getMethod(String url, String body) {
+		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPut method = new HttpPut(url);
 			method.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+			return method;
+		}
+		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
+			var method = new HttpPut(url);
 			return method;
 		}
 	},
 	PATCH {
 		
-		public HttpRequestBase getMethod(String url, String body) {
+		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPatch method = new HttpPatch(url);
 			method.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+			return method;
+		}
+		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
+			var method = new HttpPatch(url);
 			return method;
 		}
 	},
 	DELETE {
 		
-		public HttpRequestBase getMethod(String url, String body) {
+		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpDelete method = new HttpDelete(url);
 			return method;
+		}
+		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
+			throw new UnsupportedOperationException();
 		}
 	},
 	HEAD {
 		
-		public HttpRequestBase getMethod(String url, String body) {
+		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpHead httpHead = new HttpHead(url);
 			return httpHead;
+		}
+		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
+			throw new UnsupportedOperationException();
 		}
 	},
 	;
 	
 	public HttpRequestBase getMethod(String url, CcpJsonRepresentation headers, String body) {
-		HttpRequestBase method = this.getMethod(url, body);
+		HttpRequestBase method = this.getMethodWithBody(url, body);
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) {
 			String headerValue = headers.getDynamicVersion().getAsString(headerName);
@@ -72,6 +95,8 @@ enum HttpMethod {
 		return method;
 	}
 	
-	public abstract HttpRequestBase getMethod(String url, String body);
+	public abstract HttpRequestBase getMethodWithBody(String url, String body);
+	
+	public abstract HttpEntityEnclosingRequestBase getMethodWithoutBody(String url);
 	
 }
