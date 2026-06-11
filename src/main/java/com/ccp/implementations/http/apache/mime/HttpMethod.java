@@ -13,6 +13,7 @@ import org.apache.http.client.methods.HttpRequestBase;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 
+import com.ccp.decorators.CcpFieldName;
 import com.ccp.decorators.CcpJsonRepresentation;
 
 enum HttpMethod {
@@ -89,7 +90,7 @@ enum HttpMethod {
 		HttpRequestBase method = this.getMethodWithBody(url, body);
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) {
-			String headerValue = headers.getAsString(() -> headerName);
+			String headerValue = headers.getAsString(new CcpFieldName(headerName));
 			method.addHeader(headerName, headerValue);
 		}
 		return method;

@@ -14,6 +14,7 @@ import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.util.EntityUtils;
 
+import com.ccp.decorators.CcpFieldName;
 import com.ccp.decorators.CcpJsonRepresentation;
 import com.ccp.especifications.http.CcpHttpBodyBinary;
 import com.ccp.especifications.http.CcpHttpBodyText;
@@ -60,7 +61,7 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) { 
-			String header = headers.getAsString(() -> headerName);
+			String header = headers.getAsString(new CcpFieldName(headerName));
 			metodo.addHeader(headerName, header);
 		}
 		return metodo;
@@ -72,7 +73,7 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) { 
-			String header = headers.getAsString(() -> headerName);
+			String header = headers.getAsString(new CcpFieldName(headerName));
 			metodo.addHeader(headerName, header);
 		}
 		return metodo;
