@@ -20,6 +20,11 @@ import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
 
+/**
+ * Implementação de {@code HttpRequestRetryHandler} do Apache HttpClient. Realiza até 3 tentativas
+ * para requisições idempotentes (sem corpo), abortando imediatamente em casos de timeout,
+ * host desconhecido, falha de conexão ou erro SSL.
+ */
 class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 
 	

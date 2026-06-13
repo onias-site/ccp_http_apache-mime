@@ -16,6 +16,10 @@ import org.apache.http.entity.StringEntity;
 import com.ccp.decorators.CcpFieldName;
 import com.ccp.decorators.CcpJsonRepresentation;
 
+/**
+ * Enum que mapeia os verbos HTTP (POST, GET, PUT, PATCH, DELETE, HEAD) para os objetos
+ * {@code HttpRequestBase} correspondentes do Apache HttpClient, com ou sem corpo de requisição.
+ */
 enum HttpMethod {
 
 	POST { 

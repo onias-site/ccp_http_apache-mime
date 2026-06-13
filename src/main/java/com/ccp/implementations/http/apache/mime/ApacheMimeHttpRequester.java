@@ -22,6 +22,11 @@ import com.ccp.especifications.http.CcpHttpMethods;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponse;
 
+/**
+ * Implementação de {@code CcpHttpRequester} usando o Apache HttpClient com suporte a multipart/mime.
+ * Constrói e executa requisições HTTP simples e multipart, aplica o retry handler configurado
+ * em {@code CcpHttpRequestRetryHandler}, e converte a resposta em {@code CcpHttpResponse}.
+ */
 class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 	
