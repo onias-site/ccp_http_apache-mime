@@ -1,10 +1,12 @@
 package com.ccp.implementations.http.apache.mime;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
+import org.apache.http.ParseException;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -34,30 +36,31 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 	
 		HttpRequestBase metodo = this.buildHttpRequestWithBody(url, method, headers, body);
 	
-		CcpHttpResponse executeHttpRequest = this.executeHttpRequest(metodo);
-
-		return executeHttpRequest;
-	}
-
-	private CcpHttpResponse executeHttpRequest(HttpRequestBase metodo) {
 		try {
-			CloseableHttpClient client = CcpHttpRequestRetryHandler.getClient();
-			CloseableHttpResponse response = client.execute(metodo);
-
-			HttpEntity entity = response.getEntity();
-			String string = "";
-			if(entity != null) {
-				string = EntityUtils.toString(entity);
-			}
+			CcpHttpResponse executeHttpRequest = this.executeHttpRequest(metodo);
 			
-			StatusLine statusLine = response.getStatusLine();
-			int statusCode = statusLine.getStatusCode();
-			String curl = this.toCurl(metodo);
-			CcpHttpResponse ccpHttpResponse = new CcpHttpResponse(string, statusCode, curl);
-			return ccpHttpResponse;
+			return executeHttpRequest;
+			
 		} catch (Exception e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	private CcpHttpResponse executeHttpRequest(HttpRequestBase metodo) throws Exception{
+		CloseableHttpClient client = CcpHttpRequestRetryHandler.getClient();
+		CloseableHttpResponse response = client.execute(metodo);
+
+		HttpEntity entity = response.getEntity();
+		String string = "";
+		if(entity != null) {
+			string = EntityUtils.toString(entity); 
+		}
+		
+		StatusLine statusLine = response.getStatusLine();
+		int statusCode = statusLine.getStatusCode();
+		String curl = this.toCurl(metodo);
+		CcpHttpResponse ccpHttpResponse = new CcpHttpResponse(string, statusCode, curl);
+		return ccpHttpResponse;
 	}
 
 	private HttpRequestBase buildHttpRequestWithBody(String url, CcpHttpMethods method, CcpJsonRepresentation headers, String body) {
@@ -112,13 +115,17 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		HttpEntity build = multipart.build();
 		
 		metodo.setEntity(build);
+		try {
+			CcpHttpResponse executeHttpRequest = this.executeHttpRequest(metodo);
+			
+			return executeHttpRequest;
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
 
-		CcpHttpResponse executeHttpRequest = this.executeHttpRequest(metodo);
-
-		return executeHttpRequest;
 	} 
 	
-	private String toCurl(HttpUriRequest request) throws Exception {
+	private String toCurl(HttpUriRequest request) {
         StringBuilder curl = new StringBuilder("curl");
 
         // Método
@@ -142,7 +149,14 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 
             HttpEntity entity = entityRequest.getEntity();
             if (entity != null) {
-                String body = EntityUtils.toString(entity);
+                String body;
+				try {
+					body = EntityUtils.toString(entity);
+				} catch (ParseException e) {
+					throw new RuntimeException(e);
+				} catch (IOException e) {
+					throw new RuntimeException(e);
+				}
                 curl.append(" --data '")
                     .append(body.replace("'", "'\"'\"'")) // escape aspas simples
                     .append("'");
