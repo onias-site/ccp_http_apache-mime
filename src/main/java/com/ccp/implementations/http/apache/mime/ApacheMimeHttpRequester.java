@@ -1,12 +1,10 @@
 package com.ccp.implementations.http.apache.mime;
 
-import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
 import org.apache.http.Header;
 import org.apache.http.HttpEntity;
-import org.apache.http.ParseException;
 import org.apache.http.StatusLine;
 import org.apache.http.client.methods.CloseableHttpResponse;
 import org.apache.http.client.methods.HttpEntityEnclosingRequestBase;
@@ -42,7 +40,7 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 			return executeHttpRequest;
 			
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new CcpErrorApacheMimeHttp(e);
 		}
 	}
 
@@ -120,7 +118,7 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 			
 			return executeHttpRequest;
 		} catch (Exception e) {
-			throw new RuntimeException(e);
+			throw new CcpErrorApacheMimeHttp(e);
 		}
 
 	} 
@@ -152,10 +150,8 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
                 String body;
 				try {
 					body = EntityUtils.toString(entity);
-				} catch (ParseException e) {
-					throw new RuntimeException(e);
-				} catch (IOException e) {
-					throw new RuntimeException(e);
+				} catch (Exception e) {
+					throw new CcpErrorApacheMimeHttp(e);
 				}
                 curl.append(" --data '")
                     .append(body.replace("'", "'\"'\"'")) // escape aspas simples
@@ -165,4 +161,11 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
         return curl.toString();
     }
 	
+
+	@SuppressWarnings("serial")
+	private static class CcpErrorApacheMimeHttp extends RuntimeException {
+		private CcpErrorApacheMimeHttp(Throwable cause) {
+			super(cause);
+		}
+	}
 }
