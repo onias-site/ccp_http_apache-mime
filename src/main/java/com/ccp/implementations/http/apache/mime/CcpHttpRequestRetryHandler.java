@@ -19,6 +19,7 @@ import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
 import org.apache.http.ssl.SSLContextBuilder;
+import javax.net.ssl.SSLContext;
 
 /**
  * Implementação de {@code HttpRequestRetryHandler} do Apache HttpClient. Realiza até 3 tentativas
@@ -29,42 +30,52 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 
 	
 	public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
-        if (executionCount >= 3) {
+		boolean executionCountMaiorOuIgual = executionCount >= 3;
+       if (executionCountMaiorOuIgual) {
             // Do not retry if over max retry count
             return false;
         }
-        if (exception instanceof InterruptedIOException) {
+        boolean isInterruptedIOException = exception instanceof InterruptedIOException;
+        if (isInterruptedIOException) {
             // Timeout
             return false;
         }
-        if (exception instanceof UnknownHostException) {
+        boolean isUnknownHostException = exception instanceof UnknownHostException;
+        if (isUnknownHostException) {
             // Unknown host
             return false;
         }
-        if (exception instanceof ConnectTimeoutException) {
+        boolean isConnectTimeoutException = exception instanceof ConnectTimeoutException;
+        if (isConnectTimeoutException) {
             // Connection refused
             return false;
         }
-        if (exception instanceof SSLException) {
+        boolean isSSLException = exception instanceof SSLException;
+        if (isSSLException) {
             // SSL handshake exception
             return false;
         }
         HttpClientContext clientContext = HttpClientContext.adapt(context);
         HttpRequest request = clientContext.getRequest();
-        boolean b = false == (request instanceof HttpEntityEnclosingRequest);
+        boolean isHttpEntityEnclosingRequest = request instanceof HttpEntityEnclosingRequest;
+        boolean b = false == (isHttpEntityEnclosingRequest);
 		return b;
 	}
 
 	@SuppressWarnings("deprecation")
 	static CloseableHttpClient getClient() throws Exception{
 		SSLContextBuilder builder = new SSLContextBuilder();
-		builder.loadTrustMaterial(null, new TrustSelfSignedStrategy());
+		TrustSelfSignedStrategy trustSelfSignedStrategy = new TrustSelfSignedStrategy();
+		builder.loadTrustMaterial(null, trustSelfSignedStrategy);
+		SSLContext build = builder.build();
 
 		LayeredConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-                builder.build(), SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);;
-		HttpClientBuilder custom = HttpClients.custom().setSSLSocketFactory(sslsf);
-		
-		HttpClientBuilder setRetryHandler = custom.setRetryHandler(new CcpHttpRequestRetryHandler());
+                build, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);;
+                HttpClientBuilder custom2 = HttpClients.custom();
+                HttpClientBuilder custom = custom2.setSSLSocketFactory(sslsf);
+                CcpHttpRequestRetryHandler ccpHttpRequestRetryHandler = new CcpHttpRequestRetryHandler();
+
+                HttpClientBuilder setRetryHandler = custom.setRetryHandler(ccpHttpRequestRetryHandler);
 		CloseableHttpClient client = setRetryHandler.build();
 		return client;
 	}

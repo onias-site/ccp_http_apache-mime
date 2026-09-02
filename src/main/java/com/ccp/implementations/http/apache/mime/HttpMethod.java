@@ -26,7 +26,8 @@ enum HttpMethod {
 		
 		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPost method = new HttpPost(url);
-			method.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+			StringEntity stringEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
+			method.setEntity(stringEntity);
 			return method;
 		}
 
@@ -38,17 +39,20 @@ enum HttpMethod {
 	GET {
 		
 		public HttpRequestBase getMethodWithBody(String url, String body) {
-			return new HttpGet(url);
+			HttpGet httpGet = new HttpGet(url);
+			return httpGet;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
-			throw new UnsupportedOperationException();
+			UnsupportedOperationException unsupportedOperationException = new UnsupportedOperationException();
+			throw unsupportedOperationException;
 		}
 	},
 	PUT {
 		
 		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPut method = new HttpPut(url);
-			method.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+			StringEntity stringEntity2 = new StringEntity(body, ContentType.APPLICATION_JSON);
+			method.setEntity(stringEntity2);
 			return method;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
@@ -60,7 +64,8 @@ enum HttpMethod {
 		
 		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPatch method = new HttpPatch(url);
-			method.setEntity(new StringEntity(body, ContentType.APPLICATION_JSON));
+			StringEntity stringEntity3 = new StringEntity(body, ContentType.APPLICATION_JSON);
+			method.setEntity(stringEntity3);
 			return method;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
@@ -75,7 +80,8 @@ enum HttpMethod {
 			return method;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
-			throw new UnsupportedOperationException();
+			UnsupportedOperationException unsupportedOperationException2 = new UnsupportedOperationException();
+			throw unsupportedOperationException2;
 		}
 	},
 	HEAD {
@@ -85,7 +91,8 @@ enum HttpMethod {
 			return httpHead;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
-			throw new UnsupportedOperationException();
+			UnsupportedOperationException unsupportedOperationException3 = new UnsupportedOperationException();
+			throw unsupportedOperationException3;
 		}
 	},
 	;
@@ -94,7 +101,8 @@ enum HttpMethod {
 		HttpRequestBase method = this.getMethodWithBody(url, body);
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) {
-			String headerValue = headers.getAsString(new CcpFieldName(headerName));
+			CcpFieldName ccpFieldName = new CcpFieldName(headerName);
+			String headerValue = headers.getAsString(ccpFieldName);
 			method.addHeader(headerName, headerValue);
 		}
 		return method;

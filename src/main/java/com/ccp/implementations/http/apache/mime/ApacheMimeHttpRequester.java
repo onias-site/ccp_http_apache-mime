@@ -21,6 +21,7 @@ import com.ccp.especifications.http.CcpHttpBodyText;
 import com.ccp.especifications.http.CcpHttpMethods;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponse;
+import java.net.URI;
 
 /**
  * Implementação de {@code CcpHttpRequester} usando o Apache HttpClient com suporte a multipart/mime.
@@ -40,7 +41,8 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 			return executeHttpRequest;
 			
 		} catch (Exception e) {
-			throw new CcpErrorApacheMimeHttp(e);
+			CcpErrorApacheMimeHttp ccpErrorApacheMimeHttp = new CcpErrorApacheMimeHttp(e);
+			throw ccpErrorApacheMimeHttp;
 		}
 	}
 
@@ -50,7 +52,8 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 		HttpEntity entity = response.getEntity();
 		String string = "";
-		if(entity != null) {
+		boolean entityDiferente = entity != null;
+		if(entityDiferente) {
 			string = EntityUtils.toString(entity); 
 		}
 		
@@ -62,24 +65,28 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 	}
 
 	private HttpRequestBase buildHttpRequestWithBody(String url, CcpHttpMethods method, CcpJsonRepresentation headers, String body) {
-		HttpMethod verb = HttpMethod.valueOf(method.name());
+		String methodName = method.name();
+		HttpMethod verb = HttpMethod.valueOf(methodName);
 		HttpRequestBase metodo = verb.getMethodWithBody(url, body);
 		
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) { 
-			String header = headers.getAsString(new CcpFieldName(headerName));
+			CcpFieldName ccpFieldName = new CcpFieldName(headerName);
+			String header = headers.getAsString(ccpFieldName);
 			metodo.addHeader(headerName, header);
 		}
 		return metodo;
 	}
 
 	private HttpEntityEnclosingRequestBase buildHttpRequestWithoutBody(String url, CcpHttpMethods method, CcpJsonRepresentation headers) {
-		HttpMethod verb = HttpMethod.valueOf(method.name());
+		String methodName2 = method.name();
+		HttpMethod verb = HttpMethod.valueOf(methodName2);
 		HttpEntityEnclosingRequestBase metodo = verb.getMethodWithoutBody(url);
 		
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) { 
-			String header = headers.getAsString(new CcpFieldName(headerName));
+			CcpFieldName ccpFieldName2 = new CcpFieldName(headerName);
+			String header = headers.getAsString(ccpFieldName2);
 			metodo.addHeader(headerName, header);
 		}
 		return metodo;
@@ -94,20 +101,24 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		for (var body : bodyBinaries) {
 
 			byte[] bytes = body.getBytes();
-			
+			String contentTypeName = body.contentType.name();
+			CustomContentType valueOf = CustomContentType.valueOf(contentTypeName);
+
 			multipart = multipart.addBinaryBody(
 	               body.name,
 	                bytes,
-	                CustomContentType.valueOf(body.contentType.name()).contentType,
+	                valueOf.contentType,
 	                body.fileName
 	            );
 		}
 		
 		for (var body : bodyTexts) {
+			String contentTypeName2 = body.contentType.name();
+			CustomContentType valueOf2 = CustomContentType.valueOf(contentTypeName2);
 			multipart = multipart.addTextBody(
 	               body.name,
 	               body.text,
-	                CustomContentType.valueOf(body.contentType.name()).contentType
+	                valueOf2.contentType
 	            );
 		}
 		HttpEntity build = multipart.build();
@@ -118,47 +129,67 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 			
 			return executeHttpRequest;
 		} catch (Exception e) {
-			throw new CcpErrorApacheMimeHttp(e);
+			CcpErrorApacheMimeHttp ccpErrorApacheMimeHttp2 = new CcpErrorApacheMimeHttp(e);
+			throw ccpErrorApacheMimeHttp2;
 		}
 
 	} 
 	
 	private String toCurl(HttpUriRequest request) {
         StringBuilder curl = new StringBuilder("curl");
+        StringBuilder append = curl.append(" -X ");
+        String method2 = request.getMethod();
 
         // Método
-        curl.append(" -X ").append(request.getMethod());
+        append.append(method2);
+        StringBuilder append2 = curl.append(" \"");
+        URI requestURI = request.getURI();
+        StringBuilder append3 = append2.append(requestURI);
 
         // URL
-        curl.append(" \"").append(request.getURI()).append("\"");
+        append3.append("\"");
+        Header[] allHeaders = request.getAllHeaders();
 
         // Headers
-        for (Header header : request.getAllHeaders()) {
-            curl.append(" -H \"")
-                .append(header.getName()).append(": ")
-                .append(header.getValue())
+        for (Header header : allHeaders) {
+            StringBuilder append4 = curl.append(" -H \"");
+            String headerName2 = header.getName();
+            StringBuilder append5 = append4
+                .append(headerName2);
+                StringBuilder append6 = append5.append(": ");
+                String headerValue = header.getValue();
+                StringBuilder append7 = append6
+                .append(headerValue);
+                append7
                 .append("\"");
         }
+        boolean isHttpEntityEnclosingRequestBase = request instanceof HttpEntityEnclosingRequestBase;
 
         // Body (POST, PUT, PATCH...)
-        if (request instanceof HttpEntityEnclosingRequestBase) {
+        if (isHttpEntityEnclosingRequestBase) {
             HttpEntityEnclosingRequestBase entityRequest =
                 (HttpEntityEnclosingRequestBase) request;
 
             HttpEntity entity = entityRequest.getEntity();
-            if (entity != null) {
+            boolean entityDiferente2 = entity != null;
+            if (entityDiferente2) {
                 String body;
 				try {
 					body = EntityUtils.toString(entity);
 				} catch (Exception e) {
-					throw new CcpErrorApacheMimeHttp(e);
+					CcpErrorApacheMimeHttp ccpErrorApacheMimeHttp3 = new CcpErrorApacheMimeHttp(e);
+					throw ccpErrorApacheMimeHttp3;
 				}
-                curl.append(" --data '")
-                    .append(body.replace("'", "'\"'\"'")) // escape aspas simples
+    StringBuilder append8 = curl.append(" --data '");
+    String bodyReplace = body.replace("'", "'\"'\"'");
+    StringBuilder append9 = append8
+                    .append(bodyReplace);
+                    append9
                     .append("'");
             }
         }
-        return curl.toString();
+        String toString = curl.toString();
+        return toString;
     }
 	
 

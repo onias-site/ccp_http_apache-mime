@@ -9,6 +9,7 @@ import com.ccp.especifications.http.CcpHttpRequester;
 public class CcpApacheMimeHttp implements CcpInstanceProvider<CcpHttpRequester> {
 
 	public CcpHttpRequester getInstance() {
-		return new ApacheMimeHttpRequester();
+		ApacheMimeHttpRequester apacheMimeHttpRequester = new ApacheMimeHttpRequester();
+		return apacheMimeHttpRequester;
 	}
 }
