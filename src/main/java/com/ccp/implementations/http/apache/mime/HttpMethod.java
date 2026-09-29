@@ -17,8 +17,8 @@ import com.ccp.decorators.CcpFieldName;
 import com.ccp.decorators.CcpJsonRepresentation;
 
 /**
- * Enum que mapeia os verbos HTTP (POST, GET, PUT, PATCH, DELETE, HEAD) para os objetos
- * {@code HttpRequestBase} correspondentes do Apache HttpClient, com ou sem corpo de requisição.
+ * Enum that maps the HTTP verbs (POST, GET, PUT, PATCH, DELETE, HEAD) to the matching Apache
+ * HttpClient {@code HttpRequestBase} objects, with or without a request body.
  */
 enum HttpMethod {
 
@@ -51,8 +51,8 @@ enum HttpMethod {
 		
 		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPut method = new HttpPut(url);
-			StringEntity stringEntity2 = new StringEntity(body, ContentType.APPLICATION_JSON);
-			method.setEntity(stringEntity2);
+			StringEntity stringEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
+			method.setEntity(stringEntity);
 			return method;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
@@ -64,8 +64,8 @@ enum HttpMethod {
 		
 		public HttpRequestBase getMethodWithBody(String url, String body) {
 			HttpPatch method = new HttpPatch(url);
-			StringEntity stringEntity3 = new StringEntity(body, ContentType.APPLICATION_JSON);
-			method.setEntity(stringEntity3);
+			StringEntity stringEntity = new StringEntity(body, ContentType.APPLICATION_JSON);
+			method.setEntity(stringEntity);
 			return method;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
@@ -80,8 +80,8 @@ enum HttpMethod {
 			return method;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
-			UnsupportedOperationException unsupportedOperationException2 = new UnsupportedOperationException();
-			throw unsupportedOperationException2;
+			UnsupportedOperationException unsupportedOperationException = new UnsupportedOperationException();
+			throw unsupportedOperationException;
 		}
 	},
 	HEAD {
@@ -91,8 +91,8 @@ enum HttpMethod {
 			return httpHead;
 		}
 		public HttpEntityEnclosingRequestBase getMethodWithoutBody(String url) {
-			UnsupportedOperationException unsupportedOperationException3 = new UnsupportedOperationException();
-			throw unsupportedOperationException3;
+			UnsupportedOperationException unsupportedOperationException = new UnsupportedOperationException();
+			throw unsupportedOperationException;
 		}
 	},
 	;
@@ -101,8 +101,8 @@ enum HttpMethod {
 		HttpRequestBase method = this.getMethodWithBody(url, body);
 		Set<String> keySet = headers.fieldSet();
 		for (String headerName : keySet) {
-			CcpFieldName ccpFieldName = new CcpFieldName(headerName);
-			String headerValue = headers.getAsString(ccpFieldName);
+			CcpFieldName headerFieldName = new CcpFieldName(headerName);
+			String headerValue = headers.getAsString(headerFieldName);
 			method.addHeader(headerName, headerValue);
 		}
 		return method;

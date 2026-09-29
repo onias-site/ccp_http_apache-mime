@@ -22,16 +22,16 @@ import org.apache.http.ssl.SSLContextBuilder;
 import javax.net.ssl.SSLContext;
 
 /**
- * Implementação de {@code HttpRequestRetryHandler} do Apache HttpClient. Realiza até 3 tentativas
- * para requisições idempotentes (sem corpo), abortando imediatamente em casos de timeout,
- * host desconhecido, falha de conexão ou erro SSL.
+ * Apache HttpClient {@code HttpRequestRetryHandler} implementation. Makes up to 3 attempts
+ * for idempotent requests (without body), giving up immediately on timeout, unknown host,
+ * connection failure or SSL error.
  */
 class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 
 	
 	public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
-		boolean executionCountMaiorOuIgual = executionCount >= 3;
-       if (executionCountMaiorOuIgual) {
+		boolean maxRetriesReached = executionCount >= 3;
+       if (maxRetriesReached) {
             // Do not retry if over max retry count
             return false;
         }
@@ -58,8 +58,8 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
         HttpClientContext clientContext = HttpClientContext.adapt(context);
         HttpRequest request = clientContext.getRequest();
         boolean isHttpEntityEnclosingRequest = request instanceof HttpEntityEnclosingRequest;
-        boolean b = false == (isHttpEntityEnclosingRequest);
-		return b;
+        boolean isIdempotent = false == (isHttpEntityEnclosingRequest);
+		return isIdempotent;
 	}
 
 	@SuppressWarnings("deprecation")
@@ -67,16 +67,16 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 		SSLContextBuilder builder = new SSLContextBuilder();
 		TrustSelfSignedStrategy trustSelfSignedStrategy = new TrustSelfSignedStrategy();
 		builder.loadTrustMaterial(null, trustSelfSignedStrategy);
-		SSLContext build = builder.build();
+		SSLContext sslContext = builder.build();
 
-		LayeredConnectionSocketFactory sslsf = new SSLConnectionSocketFactory(
-                build, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);;
-                HttpClientBuilder custom2 = HttpClients.custom();
-                HttpClientBuilder custom = custom2.setSSLSocketFactory(sslsf);
+		LayeredConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
+                sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);;
+                HttpClientBuilder clientBuilder = HttpClients.custom();
+                HttpClientBuilder clientBuilderWithSsl = clientBuilder.setSSLSocketFactory(sslSocketFactory);
                 CcpHttpRequestRetryHandler ccpHttpRequestRetryHandler = new CcpHttpRequestRetryHandler();
 
-                HttpClientBuilder setRetryHandler = custom.setRetryHandler(ccpHttpRequestRetryHandler);
-		CloseableHttpClient client = setRetryHandler.build();
+                HttpClientBuilder clientBuilderWithRetryHandler = clientBuilderWithSsl.setRetryHandler(ccpHttpRequestRetryHandler);
+		CloseableHttpClient client = clientBuilderWithRetryHandler.build();
 		return client;
 	}
 

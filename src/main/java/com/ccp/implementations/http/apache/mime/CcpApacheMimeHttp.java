@@ -4,7 +4,7 @@ import com.ccp.dependency.injection.CcpInstanceProvider;
 import com.ccp.especifications.http.CcpHttpRequester;
 
 /**
- * Provedor de DI que expõe {@code ApacheMimeHttpRequester} como implementação de {@code CcpHttpRequester}.
+ * DI provider that exposes {@code ApacheMimeHttpRequester} as the {@code CcpHttpRequester} implementation.
  */
 public class CcpApacheMimeHttp implements CcpInstanceProvider<CcpHttpRequester> {
 
