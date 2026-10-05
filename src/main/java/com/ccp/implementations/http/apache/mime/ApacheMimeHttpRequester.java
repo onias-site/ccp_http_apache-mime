@@ -31,6 +31,15 @@ import java.net.URI;
 class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 	
+	/**
+	 * Runs the request with a JSON body and the given headers.
+	 * @param url the target URL
+	 * @param method the HTTP method
+	 * @param headers the request headers
+	 * @param body the request body (ignored by GET, DELETE and HEAD)
+	 * @return the response
+	 * @throws CcpErrorApacheMimeHttp when the request cannot be executed
+	 */
 	public CcpHttpResponse executeHttpRequest(String url, CcpHttpMethods method, CcpJsonRepresentation headers, String body) {
 	
 		HttpRequestBase httpRequest = this.buildHttpRequestWithBody(url, method, headers, body);
@@ -46,6 +55,13 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		}
 	}
 
+	/**
+	 * Executes the request with a new client and reads the status, the body and the equivalent curl command (which
+	 * includes every header, credentials included). Neither the client nor the response is closed.
+	 * @param httpRequest the request
+	 * @return the response
+	 * @throws Exception when the request fails
+	 */
 	private CcpHttpResponse executeHttpRequest(HttpRequestBase httpRequest) throws Exception{
 		CloseableHttpClient client = CcpHttpRequestRetryHandler.getClient();
 		CloseableHttpResponse response = client.execute(httpRequest);
@@ -64,6 +80,14 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		return ccpHttpResponse;
 	}
 
+	/**
+	 * Builds the request with the body and the headers.
+	 * @param url the target URL
+	 * @param method the HTTP method
+	 * @param headers the request headers
+	 * @param body the request body
+	 * @return the request
+	 */
 	private HttpRequestBase buildHttpRequestWithBody(String url, CcpHttpMethods method, CcpJsonRepresentation headers, String body) {
 		String methodName = method.name();
 		HttpMethod verb = HttpMethod.valueOf(methodName);
@@ -78,6 +102,13 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		return httpRequest;
 	}
 
+	/**
+	 * Builds a body-capable request (POST, PUT, PATCH) with the headers but no body yet.
+	 * @param url the target URL
+	 * @param method the HTTP method
+	 * @param headers the request headers
+	 * @return the request
+	 */
 	private HttpEntityEnclosingRequestBase buildHttpRequestWithoutBody(String url, CcpHttpMethods method, CcpJsonRepresentation headers) {
 		String methodName = method.name();
 		HttpMethod verb = HttpMethod.valueOf(methodName);
@@ -92,6 +123,16 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 		return httpRequest;
 	}
 	
+	/**
+	 * Runs a multipart request with the binary parts followed by the text parts.
+	 * @param url the target URL
+	 * @param method the HTTP method (POST, PUT or PATCH)
+	 * @param headers the request headers
+	 * @param bodyTexts the text parts
+	 * @param bodyBinaries the binary parts
+	 * @return the response
+	 * @throws CcpErrorApacheMimeHttp when the request cannot be executed
+	 */
 	public CcpHttpResponse executeMultiPartHttpRequest(String url, CcpHttpMethods method, CcpJsonRepresentation headers, List<CcpHttpBodyText> bodyTexts, List<CcpHttpBodyBinary> bodyBinaries) {
 		
 		HttpEntityEnclosingRequestBase httpRequest = this.buildHttpRequestWithoutBody(url, method, headers);
@@ -135,6 +176,11 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 	} 
 	
+	/**
+	 * Builds the curl command equivalent to the request, for debugging: method, URL, every header and the body.
+	 * @param request the request
+	 * @return the curl command
+	 */
 	private String toCurl(HttpUriRequest request) {
         StringBuilder curl = new StringBuilder("curl");
         StringBuilder curlWithMethodFlag = curl.append(" -X ");
@@ -193,8 +239,13 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
     }
 	
 
+	/** Raised when an HTTP request cannot be executed. */
 	@SuppressWarnings("serial")
 	private static class CcpErrorApacheMimeHttp extends RuntimeException {
+		/**
+		 * Wraps the cause.
+		 * @param cause the original failure
+		 */
 		private CcpErrorApacheMimeHttp(Throwable cause) {
 			super(cause);
 		}

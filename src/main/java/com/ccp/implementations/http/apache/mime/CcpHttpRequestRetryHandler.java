@@ -29,6 +29,14 @@ import javax.net.ssl.SSLContext;
 class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 
 	
+	/**
+	 * Retries up to 3 executions only requests without body, and never on timeout, unknown host, connection timeout or
+	 * SSL error.
+	 * @param exception the I/O failure
+	 * @param executionCount how many times the request was executed
+	 * @param context the execution context
+	 * @return {@code true} when the request must be retried
+	 */
 	public boolean retryRequest(IOException exception, int executionCount, HttpContext context) {
 		boolean maxRetriesReached = executionCount >= 3;
        if (maxRetriesReached) {
@@ -62,6 +70,11 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 		return isIdempotent;
 	}
 
+	/**
+	 * Builds a new HTTP client that trusts self-signed certificates, accepts any host name and uses this retry handler.
+	 * @return the client
+	 * @throws Exception when the SSL context cannot be built
+	 */
 	@SuppressWarnings("deprecation")
 	static CloseableHttpClient getClient() throws Exception{
 		SSLContextBuilder builder = new SSLContextBuilder();

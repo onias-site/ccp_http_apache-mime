@@ -8,6 +8,10 @@ import com.ccp.especifications.http.CcpHttpRequester;
  */
 public class CcpApacheMimeHttp implements CcpInstanceProvider<CcpHttpRequester> {
 
+	/**
+	 * Builds the Apache HttpClient implementation of {@code CcpHttpRequester}.
+	 * @return a new {@code ApacheMimeHttpRequester}
+	 */
 	public CcpHttpRequester getInstance() {
 		ApacheMimeHttpRequester apacheMimeHttpRequester = new ApacheMimeHttpRequester();
 		return apacheMimeHttpRequester;
