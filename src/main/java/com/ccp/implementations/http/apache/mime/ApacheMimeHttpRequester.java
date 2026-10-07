@@ -56,28 +56,29 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 	}
 
 	/**
-	 * Executes the request with a new client and reads the status, the body and the equivalent curl command (which
-	 * includes every header, credentials included). Neither the client nor the response is closed.
+	 * Executes the request with the shared client and reads the status, the body and the equivalent curl command (with
+	 * the secrets masked, see {@link #toCurl}). The response is closed, giving its connection back to the pool.
 	 * @param httpRequest the request
 	 * @return the response
 	 * @throws Exception when the request fails
 	 */
 	private CcpHttpResponse executeHttpRequest(HttpRequestBase httpRequest) throws Exception{
 		CloseableHttpClient client = CcpHttpRequestRetryHandler.getClient();
-		CloseableHttpResponse response = client.execute(httpRequest);
 
-		HttpEntity entity = response.getEntity();
-		String responseBody = "";
-		boolean hasEntity = entity != null;
-		if(hasEntity) {
-			responseBody = EntityUtils.toString(entity); 
+		try (CloseableHttpResponse response = client.execute(httpRequest)) {
+			HttpEntity entity = response.getEntity();
+			String responseBody = "";
+			boolean hasEntity = entity != null;
+			if(hasEntity) {
+				responseBody = EntityUtils.toString(entity);
+			}
+
+			StatusLine statusLine = response.getStatusLine();
+			int statusCode = statusLine.getStatusCode();
+			String curl = this.toCurl(httpRequest);
+			CcpHttpResponse ccpHttpResponse = new CcpHttpResponse(responseBody, statusCode, curl);
+			return ccpHttpResponse;
 		}
-		
-		StatusLine statusLine = response.getStatusLine();
-		int statusCode = statusLine.getStatusCode();
-		String curl = this.toCurl(httpRequest);
-		CcpHttpResponse ccpHttpResponse = new CcpHttpResponse(responseBody, statusCode, curl);
-		return ccpHttpResponse;
 	}
 
 	/**
@@ -176,12 +177,21 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 	} 
 	
+	/** Headers whose values are credentials, masked in the curl command (compared ignoring case). */
+	private static final Set<String> SECRET_HEADERS = Set.of("authorization", "proxy-authorization", "cookie", "sessiontoken", "x-api-key");
+
+	/** Text that replaces a secret in the curl command. */
+	static final String MASK = "***";
+
 	/**
-	 * Builds the curl command equivalent to the request, for debugging: method, URL, every header and the body.
+	 * Builds the curl command equivalent to the request, for debugging: method, URL, every header and the body. The curl
+	 * goes into errors, logs and the {@code jn_http_api_*} records, so the secrets are masked: the values of the
+	 * {@link #SECRET_HEADERS} and the Telegram bot token that travels in the URL path ({@code /bot<token>/}). Until
+	 * 2026-10-06 they went in clear.
 	 * @param request the request
 	 * @return the curl command
 	 */
-	private String toCurl(HttpUriRequest request) {
+	String toCurl(HttpUriRequest request) {
         StringBuilder curl = new StringBuilder("curl");
         StringBuilder curlWithMethodFlag = curl.append(" -X ");
         String methodName = request.getMethod();
@@ -190,7 +200,9 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
         curlWithMethodFlag.append(methodName);
         StringBuilder curlWithUrlQuote = curl.append(" \"");
         URI requestURI = request.getURI();
-        StringBuilder curlWithUrl = curlWithUrlQuote.append(requestURI);
+        String requestUrl = requestURI.toString();
+        String maskedUrl = requestUrl.replaceAll("/bot[^/]+/", "/bot" + MASK + "/");
+        StringBuilder curlWithUrl = curlWithUrlQuote.append(maskedUrl);
 
         // URL
         curlWithUrl.append("\"");
@@ -203,7 +215,9 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
             StringBuilder curlWithHeaderName = curlWithHeaderFlag
                 .append(headerName);
                 StringBuilder curlWithHeaderSeparator = curlWithHeaderName.append(": ");
-                String headerValue = header.getValue();
+                String lowerCaseHeaderName = headerName.toLowerCase();
+                boolean isSecret = SECRET_HEADERS.contains(lowerCaseHeaderName);
+                String headerValue = isSecret ? MASK : header.getValue();
                 StringBuilder curlWithHeader = curlWithHeaderSeparator
                 .append(headerValue);
                 curlWithHeader

@@ -11,15 +11,10 @@ import org.apache.http.HttpRequest;
 import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectTimeoutException;
-import org.apache.http.conn.socket.LayeredConnectionSocketFactory;
-import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
-import org.apache.http.conn.ssl.TrustSelfSignedStrategy;
 import org.apache.http.impl.client.CloseableHttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
-import org.apache.http.ssl.SSLContextBuilder;
-import javax.net.ssl.SSLContext;
 
 /**
  * Apache HttpClient {@code HttpRequestRetryHandler} implementation. Makes up to 3 attempts
@@ -70,26 +65,37 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 		return isIdempotent;
 	}
 
+	/** Connections kept in the pool, in all. */
+	private static final int MAX_CONNECTIONS = 100;
+
+	/** Connections kept in the pool per destination host. */
+	private static final int MAX_CONNECTIONS_PER_HOST = 20;
+
+	/** The single client of the process, with its pool of connections; see {@link #getClient()}. */
+	private static final CloseableHttpClient CLIENT = buildClient();
+
 	/**
-	 * Builds a new HTTP client that trusts self-signed certificates, accepts any host name and uses this retry handler.
+	 * Returns the HTTP client shared by every request. Until 2026-10-06 each request built a new client and closed neither
+	 * the client nor the response (one leaked connection per call), and the client trusted any self-signed certificate
+	 * and any host name; now the certificates and host names are checked by the default JVM rules.
 	 * @return the client
-	 * @throws Exception when the SSL context cannot be built
 	 */
-	@SuppressWarnings("deprecation")
-	static CloseableHttpClient getClient() throws Exception{
-		SSLContextBuilder builder = new SSLContextBuilder();
-		TrustSelfSignedStrategy trustSelfSignedStrategy = new TrustSelfSignedStrategy();
-		builder.loadTrustMaterial(null, trustSelfSignedStrategy);
-		SSLContext sslContext = builder.build();
+	static CloseableHttpClient getClient() {
+		return CLIENT;
+	}
 
-		LayeredConnectionSocketFactory sslSocketFactory = new SSLConnectionSocketFactory(
-                sslContext, SSLConnectionSocketFactory.ALLOW_ALL_HOSTNAME_VERIFIER);;
-                HttpClientBuilder clientBuilder = HttpClients.custom();
-                HttpClientBuilder clientBuilderWithSsl = clientBuilder.setSSLSocketFactory(sslSocketFactory);
-                CcpHttpRequestRetryHandler ccpHttpRequestRetryHandler = new CcpHttpRequestRetryHandler();
-
-                HttpClientBuilder clientBuilderWithRetryHandler = clientBuilderWithSsl.setRetryHandler(ccpHttpRequestRetryHandler);
-		CloseableHttpClient client = clientBuilderWithRetryHandler.build();
+	/**
+	 * Builds the client: default TLS validation, a pool of connections and this retry handler.
+	 * @return the client
+	 */
+	private static CloseableHttpClient buildClient() {
+		HttpClientBuilder clientBuilder = HttpClients.custom();
+		CcpHttpRequestRetryHandler ccpHttpRequestRetryHandler = new CcpHttpRequestRetryHandler();
+		HttpClientBuilder clientBuilderWithRetryHandler = clientBuilder.setRetryHandler(ccpHttpRequestRetryHandler);
+		HttpClientBuilder clientBuilderWithPool = clientBuilderWithRetryHandler
+				.setMaxConnTotal(MAX_CONNECTIONS)
+				.setMaxConnPerRoute(MAX_CONNECTIONS_PER_HOST);
+		CloseableHttpClient client = clientBuilderWithPool.build();
 		return client;
 	}
 
