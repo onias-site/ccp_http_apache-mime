@@ -233,24 +233,42 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
             HttpEntity entity = entityRequest.getEntity();
             boolean hasEntity = entity != null;
             if (hasEntity) {
-                String body;
-				try {
-					body = EntityUtils.toString(entity);
-				} catch (Exception e) {
-					CcpErrorApacheMimeHttp ccpErrorApacheMimeHttp = new CcpErrorApacheMimeHttp(e);
-					throw ccpErrorApacheMimeHttp;
-				}
-    StringBuilder curlWithDataFlag = curl.append(" --data '");
-    String escapedBody = body.replace("'", "'\"'\"'");
-    StringBuilder curlWithBody = curlWithDataFlag
-                    .append(escapedBody);
-                    curlWithBody
-                    .append("'");
+                String curlBody = this.toCurlBody(entity);
+                curl.append(curlBody);
             }
         }
         String curlCommand = curl.toString();
         return curlCommand;
     }
+
+	/**
+	 * Builds the body part of the curl command. A multipart body is only described (content type and size): it may hold
+	 * binary files, and Apache refuses to read back as text one over 25 KB ({@code ContentTooLongException}). Until
+	 * 2026-10-10 the curl tried to and threw after the request had already been accepted, so a file sent to Telegram
+	 * (the 46 KB error report to the support, for instance) was reported as a failed sending. Any other body that can
+	 * not be read is described too: the curl is for debugging and must never fail the request.
+	 * @param entity the body of the request
+	 * @return the body part of the curl command, starting with a space
+	 */
+	private String toCurlBody(HttpEntity entity) {
+		Header contentTypeHeader = entity.getContentType();
+		String contentType = contentTypeHeader == null ? "" : contentTypeHeader.getValue();
+		long contentLength = entity.getContentLength();
+		boolean isMultipart = contentType.startsWith("multipart/");
+
+		if (isMultipart) {
+			return " --form '<" + contentType + " body with " + contentLength + " bytes, not reproduced>'";
+		}
+
+		try {
+			String body = EntityUtils.toString(entity);
+			String escapedBody = body.replace("'", "'\"'\"'");
+			return " --data '" + escapedBody + "'";
+		} catch (Exception e) {
+			String failureName = e.getClass().getSimpleName();
+			return " --data '<body with " + contentLength + " bytes, unreadable: " + failureName + ">'";
+		}
+	}
 	
 
 	/** Raised when an HTTP request cannot be executed. */
