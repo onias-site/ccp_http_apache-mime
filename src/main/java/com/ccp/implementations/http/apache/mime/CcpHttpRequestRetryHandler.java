@@ -3,15 +3,18 @@ package com.ccp.implementations.http.apache.mime;
 import java.io.IOException;
 import java.io.InterruptedIOException;
 import java.net.UnknownHostException;
+import java.util.concurrent.TimeUnit;
 
 import javax.net.ssl.SSLException;
 
 import org.apache.http.HttpEntityEnclosingRequest;
 import org.apache.http.HttpRequest;
+import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpRequestRetryHandler;
 import org.apache.http.client.protocol.HttpClientContext;
 import org.apache.http.conn.ConnectTimeoutException;
 import org.apache.http.impl.client.CloseableHttpClient;
+import org.apache.http.impl.client.DefaultConnectionKeepAliveStrategy;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.protocol.HttpContext;
@@ -85,7 +88,19 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 	}
 
 	/**
-	 * Builds the client: default TLS validation, a pool of connections and this retry handler.
+	 * How long, in seconds, a connection may stay idle in the pool and still be reused. A keep-alive connection left idle
+	 * for minutes may be dropped by the other side (or by a NAT/firewall in between) without any notice, and the pool
+	 * only finds that out when it reuses it: the request is written and the answer is a {@code Connection reset}. That is
+	 * what happened on 2026-10-11 when sending a message to the Telegram after a few minutes without traffic.
+	 */
+	private static final int MAX_IDLE_SECONDS = 20;
+
+	/**
+	 * Builds the client: default TLS validation, a pool of connections and this retry handler. A connection idle for
+	 * longer than {@link #MAX_IDLE_SECONDS} is never reused: its keep-alive expires at that time (even when the server
+	 * promises more), the pool discards an expired connection when lending it, and a background thread closes the idle
+	 * and expired ones. Retrying a failed POST was not an option: the server may have received it already, and a
+	 * message to the user would go twice.
 	 * @return the client
 	 */
 	private static CloseableHttpClient buildClient() {
@@ -95,8 +110,30 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 		HttpClientBuilder clientBuilderWithPool = clientBuilderWithRetryHandler
 				.setMaxConnTotal(MAX_CONNECTIONS)
 				.setMaxConnPerRoute(MAX_CONNECTIONS_PER_HOST);
-		CloseableHttpClient client = clientBuilderWithPool.build();
+		HttpClientBuilder clientBuilderWithKeepAlive = clientBuilderWithPool
+				.setKeepAliveStrategy(CcpHttpRequestRetryHandler::getKeepAliveDuration)
+				.evictExpiredConnections()
+				.evictIdleConnections(MAX_IDLE_SECONDS, TimeUnit.SECONDS);
+		CloseableHttpClient client = clientBuilderWithKeepAlive.build();
 		return client;
+	}
+
+	/**
+	 * How long the connection of this response may be reused: what the server announces in {@code Keep-Alive}, limited
+	 * to {@link #MAX_IDLE_SECONDS}.
+	 * @param response the response
+	 * @param context the execution context
+	 * @return the keep-alive, in milliseconds
+	 */
+	static long getKeepAliveDuration(HttpResponse response, HttpContext context) {
+		long maxIdleMillis = TimeUnit.SECONDS.toMillis(MAX_IDLE_SECONDS);
+		long keepAliveAnnouncedByTheServer = DefaultConnectionKeepAliveStrategy.INSTANCE.getKeepAliveDuration(response, context);
+		boolean serverDidNotLimit = keepAliveAnnouncedByTheServer <= 0;
+		if (serverDidNotLimit) {
+			return maxIdleMillis;
+		}
+		long keepAlive = Math.min(keepAliveAnnouncedByTheServer, maxIdleMillis);
+		return keepAlive;
 	}
 
 }
