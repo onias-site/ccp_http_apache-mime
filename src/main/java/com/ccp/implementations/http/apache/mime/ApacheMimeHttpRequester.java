@@ -185,7 +185,7 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 	/**
 	 * Builds the curl command equivalent to the request, for debugging: method, URL, every header and the body. The curl
-	 * goes into errors, logs and the {@code jn_http_api_*} records, so the secrets are masked: the values of the
+	 * goes into errors, logs and the records of the callers, so the secrets are masked: the values of the
 	 * {@link #SECRET_HEADERS} and the Telegram bot token that travels in the URL path ({@code /bot<token>/}). Until
 	 * 2026-10-06 they went in clear.
 	 * @param request the request
