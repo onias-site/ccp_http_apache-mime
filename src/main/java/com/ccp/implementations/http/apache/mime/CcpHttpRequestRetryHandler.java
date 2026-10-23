@@ -25,8 +25,11 @@ import org.apache.http.protocol.HttpContext;
  * connection failure or SSL error.
  */
 class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
+	/** The single instance: the class keeps no state. */
+	public final static CcpHttpRequestRetryHandler INSTANCE = new CcpHttpRequestRetryHandler();
 
-	
+	private CcpHttpRequestRetryHandler() {}
+
 	/**
 	 * Retries up to 3 executions only requests without body, and never on timeout, unknown host, connection timeout or
 	 * SSL error.
@@ -105,7 +108,7 @@ class CcpHttpRequestRetryHandler implements HttpRequestRetryHandler {
 	 */
 	private static CloseableHttpClient buildClient() {
 		HttpClientBuilder clientBuilder = HttpClients.custom();
-		CcpHttpRequestRetryHandler ccpHttpRequestRetryHandler = new CcpHttpRequestRetryHandler();
+		CcpHttpRequestRetryHandler ccpHttpRequestRetryHandler = CcpHttpRequestRetryHandler.INSTANCE;
 		HttpClientBuilder clientBuilderWithRetryHandler = clientBuilder.setRetryHandler(ccpHttpRequestRetryHandler);
 		HttpClientBuilder clientBuilderWithPool = clientBuilderWithRetryHandler
 				.setMaxConnTotal(MAX_CONNECTIONS)

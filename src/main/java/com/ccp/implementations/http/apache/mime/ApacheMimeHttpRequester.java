@@ -29,8 +29,11 @@ import java.net.URI;
  * in {@code CcpHttpRequestRetryHandler}, and converts the response into a {@code CcpHttpResponse}.
  */
 class ApacheMimeHttpRequester implements CcpHttpRequester {
+	/** The single instance: the class keeps no state. */
+	public final static ApacheMimeHttpRequester INSTANCE = new ApacheMimeHttpRequester();
 
-	
+	private ApacheMimeHttpRequester() {}
+
 	/**
 	 * Runs the request with a JSON body and the given headers.
 	 * @param url the target URL
