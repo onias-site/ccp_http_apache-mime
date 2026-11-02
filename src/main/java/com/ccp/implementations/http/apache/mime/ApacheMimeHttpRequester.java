@@ -21,6 +21,7 @@ import com.ccp.especifications.http.CcpHttpBodyText;
 import com.ccp.especifications.http.CcpHttpMethods;
 import com.ccp.especifications.http.CcpHttpRequester;
 import com.ccp.especifications.http.CcpHttpResponse;
+import com.ccp.especifications.http.CcpHttpSecretMask;
 import java.net.URI;
 
 /**
@@ -180,16 +181,9 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 	} 
 	
-	/** Headers whose values are credentials, masked in the curl command (compared ignoring case). */
-	private static final Set<String> SECRET_HEADERS = Set.of("authorization", "proxy-authorization", "cookie", "sessiontoken", "x-api-key");
-
-	/** Text that replaces a secret in the curl command. */
-	static final String MASK = "***";
-
 	/**
 	 * Builds the curl command equivalent to the request, for debugging: method, URL, every header and the body. The curl
-	 * goes into errors, logs and the records of the callers, so the secrets are masked: the values of the
-	 * {@link #SECRET_HEADERS} and the Telegram bot token that travels in the URL path ({@code /bot<token>/}). Until
+	 * goes into errors, logs and the records of the callers, so the secrets are masked by {@link CcpHttpSecretMask}. Until
 	 * 2026-10-06 they went in clear.
 	 * @param request the request
 	 * @return the curl command
@@ -204,7 +198,7 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
         StringBuilder curlWithUrlQuote = curl.append(" \"");
         URI requestURI = request.getURI();
         String requestUrl = requestURI.toString();
-        String maskedUrl = requestUrl.replaceAll("/bot[^/]+/", "/bot" + MASK + "/");
+        String maskedUrl = CcpHttpSecretMask.INSTANCE.maskUrl(requestUrl);
         StringBuilder curlWithUrl = curlWithUrlQuote.append(maskedUrl);
 
         // URL
@@ -218,11 +212,10 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
             StringBuilder curlWithHeaderName = curlWithHeaderFlag
                 .append(headerName);
                 StringBuilder curlWithHeaderSeparator = curlWithHeaderName.append(": ");
-                String lowerCaseHeaderName = headerName.toLowerCase();
-                boolean isSecret = SECRET_HEADERS.contains(lowerCaseHeaderName);
-                String headerValue = isSecret ? MASK : header.getValue();
+                String headerValue = header.getValue();
+                String maskedHeaderValue = CcpHttpSecretMask.INSTANCE.maskHeaderValue(headerName, headerValue);
                 StringBuilder curlWithHeader = curlWithHeaderSeparator
-                .append(headerValue);
+                .append(maskedHeaderValue);
                 curlWithHeader
                 .append("\"");
         }
@@ -265,7 +258,8 @@ class ApacheMimeHttpRequester implements CcpHttpRequester {
 
 		try {
 			String body = EntityUtils.toString(entity);
-			String escapedBody = body.replace("'", "'\"'\"'");
+			String maskedBody = CcpHttpSecretMask.INSTANCE.maskBody(body);
+			String escapedBody = maskedBody.replace("'", "'\"'\"'");
 			return " --data '" + escapedBody + "'";
 		} catch (Exception e) {
 			String failureName = e.getClass().getSimpleName();
